@@ -1,6 +1,8 @@
 .DS_Store
 
-sample-server/sample-server
-sample-server/test.jpg
+5.2.1/sample-server/sample-server
+5.2.1/sample-server/test.jpg
 
-sample-client/sample-client
+5.2.1/sample-client/sample-client
+
+5.2.2/sample-client-timeout/sample-client-timeout
