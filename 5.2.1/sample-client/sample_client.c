@@ -7,7 +7,7 @@
 #include        <stdio.h>
 #include        <stdlib.h>
 #include        <string.h>
-#include	<unistd.h>
+#include        <unistd.h>
 
 #define  SERVER_PORT   5001   /* 着信側の待ち受けポート番号 */
 #define  MAXPKTLEN     1004   /* 最大パケット長(バイト)     */
@@ -21,19 +21,18 @@ main(int argc, char **argv)
 	struct sockaddr_in	servaddr;
 	
 	FILE   *fp;              /* 読み込むファイルの識別子   */
-        long   filesize;         /* ファイルサイズ             */
+	long   filesize;         /* ファイルサイズ             */
 
-        int  num_bytes_data = 0; /* 相手に送信するデータの長さ */
-        int  send_seq_num  = 0;  /* パケットの順序番号         */
-        int  num_bytes_pkt = 0;	 /* 相手に送信するパケットの長さ */
-       	
+	int  num_bytes_data = 0; /* 相手に送信するデータの長さ */
+	int  send_seq_num  = 0;  /* パケットの順序番号         */
+	int  num_bytes_pkt = 0;	 /* 相手に送信するパケットの長さ */
 	char sendpkt[MAXPKTLEN];    /* パケット全体を格納する配列変数 */
 	char senddata[MAXPKTLEN-4]; /* パケットのデータ部を格納する配列変数 */
         
         char recvpkt[MAXPKTLEN]; /* 相手から受信するACKパケット全体を */
 				 /* 格納する配列変数                  */
 	int  num_bytes_recv;     /* 相手から受信するACKパケットの長さ情報を */
-                                 /* 格納する変数　　　　　　　　　　　　　　*/
+													/* 格納する変数　　　　　　　　　　　　　　*/
   
 	if (argc != 2)
 	{
