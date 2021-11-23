@@ -1,9 +1,9 @@
-#include        <sys/types.h>   
-#include        <sys/socket.h>  
-#include        <sys/time.h>    
-#include        <time.h>          
-#include        <netinet/in.h>  
-#include        <arpa/inet.h>   
+#include        <sys/types.h>
+#include        <sys/socket.h>
+#include        <sys/time.h>
+#include        <time.h>
+#include        <netinet/in.h>
+#include        <arpa/inet.h>
 #include        <stdio.h>
 #include        <stdlib.h>
 #include        <string.h>
@@ -44,50 +44,59 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	/* 受信パケットのデータ部を書き出すファイルをオープン */
-  fp = fopen("test.jpg","wb");
+  int i = 0;
 
-  if (fp == NULL) {
-    printf("File open error: test.jpg\n");
-    return -1;
-  }
-  
   while(1) {
-    /* 相手からパケットを１つ受信して全体をrecvpktに格納 */
-    num_bytes_pkt
-      = recvfrom(sockfd, recvpkt, MAXPKTLEN, 0, 
-          (struct sockaddr *)&cliaddr, &len);
+    i++;
+    filename[255];
+    sprintf(filename, "test%d.jpg", i);
+    fp = fopen(filename, "wb");
+    /* 受信パケットのデータ部を書き出すファイルをオープン */
+    if (fp == NULL) {
+      printf("File open error: %s.jpg\n", filename);
+      return -1;
+    }
+    
+    while(1) {
+      /* 相手からパケットを１つ受信して全体をrecvpktに格納 */
+      num_bytes_pkt
+        = recvfrom(sockfd, recvpkt, MAXPKTLEN, 0, 
+            (struct sockaddr *)&cliaddr, &len);
 
-    /* 受信パケット長 num_bytes_pkt - 4 が パケットのデータ部の長さ */
-    num_bytes_data = num_bytes_pkt - 4;
-    total_num_bytes_data += num_bytes_data;
+      /* 受信パケット長 num_bytes_pkt - 4 が パケットのデータ部の長さ */
+      num_bytes_data = num_bytes_pkt - 4;
+      total_num_bytes_data += num_bytes_data;
 
-    /* 受信パケットの先頭4バイト(ヘッダ部)を変数seq_numにコピー */
-    memcpy((char *)&seq_num,recvpkt,4); 
+      /* 受信パケットの先頭4バイト(ヘッダ部)を変数seq_numにコピー */
+      memcpy((char *)&seq_num,recvpkt,4); 
 
-    /* 受信パケットの先頭から5バイト目以降末尾まで(データ部)を  */
-    /* recvdataにコピー                                         */
-    memcpy(recvdata,recvpkt+4,num_bytes_data); 
-    printf("Receive : %d bytes, seq_num=%d\n",num_bytes_data,seq_num);
+      /* 受信パケットの先頭から5バイト目以降末尾まで(データ部)を  */
+      /* recvdataにコピー */
+      memcpy(recvdata,recvpkt+4,num_bytes_data); 
+      printf("Receive : %d bytes, seq_num=%d\n",num_bytes_data,seq_num);
 
-    /* sendpkt(長さ4バイト)にseq_num(長さ4バイト)の内容をコピー */
-    memcpy(sendpkt,(char *)&seq_num,4);
+      /* sendpkt(長さ4バイト)にseq_num(長さ4バイト)の内容をコピー */
+      memcpy(sendpkt,(char *)&seq_num,4);
 
-    /* sendpktの内容をACKパケットとして相手に送信 */
-    sendto(sockfd, sendpkt, 4, 0, 
-          (struct sockaddr *)&cliaddr, 
-          sizeof(cliaddr));
-    printf("ACK with seq_num %d is sent : \n",seq_num);
+      /* sendpktの内容をACKパケットとして相手に送信 */
+      sendto(sockfd, sendpkt, 4, 0, 
+            (struct sockaddr *)&cliaddr, 
+            sizeof(cliaddr));
+      printf("ACK with seq_num %d is sent : \n",seq_num);
 
-    /* recvdata の内容を ファイルに書き出し */
-    fwrite(recvdata,num_bytes_data,1,fp);
+      /* recvdata の内容を ファイルに書き出し */
+      fwrite(recvdata,num_bytes_data,1,fp);
 
-    if (seq_num == 0) {
+      if (seq_num <= 0) {
+        fclose(fp);
+        break;
+      }
+    }
+    if(seq_num == 0){
       break;
     }
   }
 
-  fclose(fp);
   close(sockfd);
 
 	printf("Total amount of received data : \

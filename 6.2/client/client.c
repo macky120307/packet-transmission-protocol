@@ -35,9 +35,9 @@ main(int argc, char **argv)
   /* 格納する配列変数 */
 	int  num_bytes_recv;     /* 相手から受信するACKパケットの長さ情報を */
   /* 格納する変数 */
-  
-	if (argc != 2) {
-    printf("usage:  <IPaddress>\n");
+  printf("%d\n", argc);
+	if (argc == 1) {
+    printf("usage: <IPaddress> <FileName> ...\n");
     return -1;
 	}
 
@@ -57,88 +57,93 @@ main(int argc, char **argv)
     return -1;
   }
 
-	/* 相手に送信する画像ファイルをオープン */
-	if (NULL == (fp = fopen("test.jpg","rb"))) {
-    perror("File open error:");
-    return -1;
-  }
-
-	/* 受信タイムアウト時間の設定 */
-	
- 	tv.tv_sec  = 0;      /* 秒単位 */
-	tv.tv_usec = 750000; /* マイクロ秒単位 ここでは750us*/
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-
-  /* ファイルサイズ (バイト数) を取得 */
-  filesize = GetFileSize(fp);
-  printf("File size is %ld bytes\n",filesize);
-
-  /* ファイルサイズが1000バイト以上なら，1000バイトを，そうでなければ */
-  /* ファイルサイズに等しい長さのデータを相手に送ると設定 */
-  /* この数を変数 num_bytes_data に格納する */
-
-  int i = 0;
-
-	while(1) {
-    if (filesize >= 1000) {
-      num_bytes_data = 1000;
-      filesize -= 1000;
-      i++;
-    } else {
-      num_bytes_data = filesize;
-      i = 0;
+  for (int i = 2; i < argc; i++) {
+    /* 相手に送信する画像ファイルをオープン */
+    if (NULL == (fp = fopen(argv[i],"rb"))) {
+      perror("File open error:");
+      return -1;
     }
+    /* 受信タイムアウト時間の設定 */
 
-    /* パケットの順序番号を 1と設定 */
-    send_seq_num = i;
+    tv.tv_sec  = 0;      /* 秒単位 */
+    tv.tv_usec = 750000; /* マイクロ秒単位 ここでは750us*/
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    /* num_bytes_dataの長さのデータをファイルから読み込んで */
-    /* senddataに格納                                       */
-    fread(senddata, num_bytes_data,1,fp);
+    /* ファイルサイズ (バイト数) を取得 */
+    filesize = GetFileSize(fp);
+    printf("File size is %ld bytes\n",filesize);
 
-    /* sendpktの先頭4バイトに順序番号の変数 send_seq_num(4バイト)の内容をコピー */
-    memcpy(sendpkt,(char *)&send_seq_num,4);
+    /* ファイルサイズが1000バイト以上なら，1000バイトを，そうでなければ */
+    /* ファイルサイズに等しい長さのデータを相手に送ると設定 */
+    /* この数を変数 num_bytes_data に格納する */
 
-    /* sendpktの先頭から5バイト以降に，senddataの内容を num_bytes_dataの長さだけコピー */
-    memcpy(sendpkt+4,senddata,num_bytes_data);
 
-    /* パケットの長さを num_bytes_pktに設定 */
-    num_bytes_pkt = num_bytes_data + 4;
-    
+    int j = 0;
     while(1) {
-      /* sendataの先頭から num_bytes_pkt　バイトを相手に送信 */
-      sendto(sockfd, sendpkt, num_bytes_pkt, 0, 
-            (struct sockaddr *)&servaddr, 
-            sizeof(servaddr));
-
-      printf("Sending data of %d bytes, seq_num=%d....",\
-          num_bytes_data,send_seq_num);
-
-      /* 相手から ACK パケットを受信 */
-      num_bytes_recv
-            = recvfrom(sockfd, recvpkt,MAXPKTLEN,0,NULL,NULL);
-
-      if(num_bytes_recv >= 0) {
-        break;
+      if (filesize >= 1000) {
+        num_bytes_data = 1000;
+        filesize -= 1000;
+        j++;
       } else {
-        printf("ACK timeout.\n");
+        num_bytes_data = filesize;
+        if (i == argc - 1) {
+          j = 0;
+        } else {
+          j = -1;
+        }
       }
-    }
 
-    if (num_bytes_recv>0) {
-      printf("ACK received.\n");
-    } else {
-      /*num_bytes_recv=0の場合はタイムアウト以外のエラー*/
-      printf("ACK error.\n");
-    }
+      /* パケットの順序番号を 1と設定 */
+      send_seq_num = j;
 
-    if (i == 0) {
-      break;
+      /* num_bytes_dataの長さのデータをファイルから読み込んで */
+      /* senddataに格納 */
+      fread(senddata, num_bytes_data,1,fp);
+
+      /* sendpktの先頭4バイトに順序番号の変数 send_seq_num(4バイト)の内容をコピー */
+      memcpy(sendpkt,(char *)&send_seq_num,4);
+
+      /* sendpktの先頭から5バイト以降に，senddataの内容を num_bytes_dataの長さだけコピー */
+      memcpy(sendpkt+4,senddata,num_bytes_data);
+
+      /* パケットの長さを num_bytes_pktに設定 */
+      num_bytes_pkt = num_bytes_data + 4;
+
+      while(1) {
+        /* sendataの先頭から num_bytes_pkt　バイトを相手に送信 */
+        sendto(sockfd, sendpkt, num_bytes_pkt, 0, 
+              (struct sockaddr *)&servaddr, 
+              sizeof(servaddr));
+
+        printf("Sending data of %d bytes, seq_num=%d....",\
+            num_bytes_data,send_seq_num);
+
+        /* 相手から ACK パケットを受信 */
+        num_bytes_recv
+              = recvfrom(sockfd, recvpkt,MAXPKTLEN,0,NULL,NULL);
+
+        if(num_bytes_recv >= 0) {
+          break;
+        } else {
+          printf("ACK timeout.\n");
+        }
+      }
+
+      if (num_bytes_recv>0) {
+        printf("ACK received.\n");
+      } else {
+        /*num_bytes_recv=0の場合はタイムアウト以外のエラー*/
+        printf("ACK error.\n");
+      }
+
+      if (j <= 0) {
+        break;
+      }
     }
   }
 
   fclose(fp);
-        close(sockfd);
+  close(sockfd);
   return 0;
 }
 
