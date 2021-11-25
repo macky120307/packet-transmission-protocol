@@ -73,10 +73,26 @@ main(int argc, char **argv)
     filesize = GetFileSize(fp);
     printf("File size is %ld bytes\n",filesize);
 
-    /* ファイルサイズが1000バイト以上なら，1000バイトを，そうでなければ */
-    /* ファイルサイズに等しい長さのデータを相手に送ると設定 */
-    /* この数を変数 num_bytes_data に格納する */
+    /* num_bytes_dataの長さのデータをファイルから読み込んで */
+    /* senddataに格納 */
+    fread(senddata, num_bytes_data,1,fp);
 
+    int send_seq_num = -2;
+
+    memcpy(sendpkt,(char *)&send_seq_num,4);
+    memcpy(sendpkt+4,argv[i],strlen(argv[i])+1);
+    num_bytes_pkt = strlen(argv[i])+1 + 4;
+    sendto(sockfd, sendpkt, num_bytes_pkt, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    printf("Sending data of %d bytes, seq_num=%d....",num_bytes_data,send_seq_num);
+
+    num_bytes_recv = recvfrom(sockfd, recvpkt,MAXPKTLEN,0,NULL,NULL);
+
+    if (num_bytes_recv > 0) {
+      printf("ACK received.\n");
+    } else {
+      /* num_bytes_recvが0以下であった場合，recvfromにエラーが生じている*/
+      printf("ACK error.\n");
+    }
 
     int j = 0;
     while(1) {
