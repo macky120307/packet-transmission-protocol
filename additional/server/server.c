@@ -44,14 +44,25 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-  int i = 0;
-
   while(1) {
-    i++;
-    filename[255];
-    sprintf(filename, "test%d.jpg", i);
+    num_bytes_pkt
+        = recvfrom(sockfd, recvpkt, MAXPKTLEN, 0, 
+            (struct sockaddr *)&cliaddr, &len);
+    num_bytes_data = num_bytes_pkt - 4;
+    total_num_bytes_data += num_bytes_data;
+    memcpy((char *)&seq_num,recvpkt,4);
+    memcpy(recvdata,recvpkt+4,num_bytes_data); 
+    printf("Receive : %d bytes, seq_num=%d\n",num_bytes_data,seq_num);
+    memcpy(sendpkt,(char *)&seq_num,4);
+    
     fp = fopen(filename, "wb");
+    sendto(sockfd, sendpkt, 4, 0, 
+            (struct sockaddr *)&cliaddr, 
+            sizeof(cliaddr));
+    printf("ACK with seq_num %d is sent : \n",seq_num);
     /* 受信パケットのデータ部を書き出すファイルをオープン */
+    printf("recvdata:%d", recvdata);
+    fp = fopen(recvdata, "wb");
     if (fp == NULL) {
       printf("File open error: %s.jpg\n", filename);
       return -1;
